@@ -5,7 +5,6 @@
 package main
 
 import (
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -16,11 +15,13 @@ var (
 	s    = `
 <!DOCTYPE html>
 <head>
+	<link rel="stylesheet" href="/public/stylesheets/tinyblog.css" type="text/css">
 </head>
 <body>
-<h1>
-{{.S}}
-</h1>
+	<h1>
+		{{.S}}
+	</h1>
+	<p>Foobar</p>
 </body>
 </html>
 `
@@ -37,12 +38,13 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("%s\n", r.URL.Path)
 }
 
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
+	fs := http.FileServer(http.Dir("public"))
+	http.Handle("/public/", http.StripPrefix("/public", fs))
 	http.HandleFunc("/", homeHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
