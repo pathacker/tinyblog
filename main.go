@@ -5,36 +5,62 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
+
+	blackfriday "gopkg.in/russross/blackfriday.v2"
 )
 
 var (
-	tmpl template.Template
-	s    = `
+	tmpl       template.Template
+	tmplString = `
 <!DOCTYPE html>
 <head>
-	<link rel="stylesheet" href="/public/stylesheets/tinyblog.css" type="text/css">
+	<style>{{.Stylesheet}}</style>
 </head>
 <body>
-	<h1>
-		{{.S}}
-	</h1>
-	<p>Foobar</p>
+	<article>
+	{{.S}}
+	<article>
 </body>
 </html>
 `
 )
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	data := struct {
-		S string
-	}{
-		S: "found me!",
+	var s string
+	fn := r.URL.Path[1:]
+	ssbuf, err := ioutil.ReadFile("public/stylesheets/tinyblog.css")
+	stylesheet := string(ssbuf)
+	if err != nil {
+		log.Fatal(err)
 	}
-	t := template.Must(template.New("foo").Parse(s))
-	err := t.Execute(w, data)
+	if fn == "" {
+		b, err := ioutil.ReadFile("content/index.html")
+		s = string(b)
+		if err != nil {
+			return
+		}
+	} else {
+		b, err := ioutil.ReadFile(fmt.Sprintf("content/%s.md", fn))
+		s = string(blackfriday.Run(b))
+		if err != nil {
+			return
+		}
+	}
+
+	data := struct {
+		S          template.HTML
+		Stylesheet template.CSS
+	}{
+		S:          template.HTML(s),
+		Stylesheet: template.CSS(stylesheet),
+	}
+	t := template.Must(template.New("foo").Parse(tmplString))
+	err = t.Execute(w, data)
 	if err != nil {
 		log.Fatal(err)
 	}
