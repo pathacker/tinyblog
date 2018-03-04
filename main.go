@@ -19,7 +19,7 @@ var (
 	tmplString = `
 <!DOCTYPE html>
 <head>
-	<style>{{.Stylesheet}}</style>
+	<link rel="stylesheet" type="text/css" href="/public/stylesheets/tinyblog.css">
 </head>
 <body>
 	<article>
@@ -31,36 +31,29 @@ var (
 )
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	var s string
+	var content string
 	fn := r.URL.Path[1:]
-	ssbuf, err := ioutil.ReadFile("public/stylesheets/tinyblog.css")
-	stylesheet := string(ssbuf)
-	if err != nil {
-		log.Fatal(err)
-	}
 	if fn == "" {
 		b, err := ioutil.ReadFile("content/index.html")
-		s = string(b)
 		if err != nil {
 			return
 		}
+		content = string(b)
 	} else {
 		b, err := ioutil.ReadFile(fmt.Sprintf("content/%s.md", fn))
-		s = string(blackfriday.Run(b))
 		if err != nil {
 			return
 		}
+		content = string(blackfriday.Run(b))
 	}
 
 	data := struct {
-		S          template.HTML
-		Stylesheet template.CSS
+		S template.HTML
 	}{
-		S:          template.HTML(s),
-		Stylesheet: template.CSS(stylesheet),
+		S: template.HTML(content),
 	}
 	t := template.Must(template.New("foo").Parse(tmplString))
-	err = t.Execute(w, data)
+	err := t.Execute(w, data)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -70,7 +63,7 @@ func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 
 	fs := http.FileServer(http.Dir("public"))
-	http.Handle("/public/", http.StripPrefix("/public", fs))
+	http.Handle("/public/", http.StripPrefix("/public/", fs))
 	http.HandleFunc("/", homeHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
