@@ -22,6 +22,9 @@ var (
 	<link rel="stylesheet" type="text/css" href="/public/stylesheets/tinyblog.css">
 </head>
 <body>
+	<nav>
+		<a href="/">Home</a>
+	</nav>
 	<article>
 	{{.S}}
 	<article>
@@ -34,18 +37,13 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	var content string
 	fn := r.URL.Path[1:]
 	if fn == "" {
-		b, err := ioutil.ReadFile("content/index.html")
-		if err != nil {
-			return
-		}
-		content = string(b)
-	} else {
-		b, err := ioutil.ReadFile(fmt.Sprintf("content/%s.md", fn))
-		if err != nil {
-			return
-		}
-		content = string(blackfriday.Run(b))
+		fn = "index"
 	}
+	b, err := ioutil.ReadFile(fmt.Sprintf("content/%s.md", fn))
+	if err != nil {
+		return
+	}
+	content = string(blackfriday.Run(b))
 
 	data := struct {
 		S template.HTML
@@ -53,7 +51,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		S: template.HTML(content),
 	}
 	t := template.Must(template.New("foo").Parse(tmplString))
-	err := t.Execute(w, data)
+	err = t.Execute(w, data)
 	if err != nil {
 		log.Fatal(err)
 	}
